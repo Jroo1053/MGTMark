@@ -1,0 +1,42 @@
+{
+  "datasets":[
+    {
+      "name": "aadityaubhat/GPT-wiki-intro",
+      "human_samples": "wiki_intro",
+      "machine_samples": "generated_intro"
+    }
+  ],
+  "attacks": [
+    {
+        "name": "translate",
+        "base_lang": "english",
+        "new_lang": "chinese",
+        "model": "gpt-3.5-turbo",
+        "auth_file": "config/gpt_auth.key"
+    }
+
+  ],
+  "models": [
+    {
+      "name": "andreas122001/roberta-wiki-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "andreas122001/roberta-academic-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "openai-community/roberta-base-openai-detector",
+      "human_label": "Real",
+      "machine_label": "Fake"
+    },
+    {
+      "name": "Hello-SimpleAI/chatgpt-detector-roberta",
+      "human_label": "Human",
+      "machine_label": "ChatGPT"
+    }
+  ],
+  "samples": 50
+}

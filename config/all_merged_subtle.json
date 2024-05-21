@@ -1,0 +1,88 @@
+{
+  "datasets":[
+    {
+      "name": "aadityaubhat/GPT-wiki-intro",
+      "human_samples": "wiki_intro",
+      "machine_samples": "generated_intro"
+    },
+    {
+      "name":"NicolaiSivesind/ChatGPT-Research-Abstracts",
+      "human_samples": "real_abstract",
+      "machine_samples": "generated_abstract"
+    },
+    {
+      "name": "AIMANGUYDUDE/gpt-compare",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    },
+    {
+      "name": "AIMANGUYDUDE/gpt-essay-compare",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    },
+    {
+      "name": "AIMANGUYDUDE/gpt-wiki-intro-gemma",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    },
+    {
+      "name": "AIMANGUYDUDE/gpt-wiki-intro-rewrite",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    },
+    {
+      "name": "AIMANGUYDUDE/abstract-gemma",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    },
+    {
+      "name": "AIMANGUYDUDE/hc3-base",
+      "human_samples": "human_sample",
+      "machine_samples": "ai_sample"
+    }
+
+  ],
+  "attacks": [
+    {
+      "name": "glyph",
+      "pair_file": "config/subtle_pairs.json",
+      "chance": 0.25
+    },
+    {
+      "name": "zwsp",
+      "padding_mult": 0.01
+    },
+    {
+      "name": "spelling",
+      "spell_file": "config/spelling.dat",
+      "chance": 0.25
+    },
+    {
+      "name": "spacing",
+      "chance": 0.25
+    }
+  ],
+  "models": [
+    {
+      "name": "andreas122001/roberta-wiki-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "andreas122001/roberta-academic-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "openai-community/roberta-base-openai-detector",
+      "human_label": "Real",
+      "machine_label": "Fake"
+    },
+    {
+      "name": "Hello-SimpleAI/chatgpt-detector-roberta",
+      "human_label": "Human",
+      "machine_label": "ChatGPT"
+    }
+  ],
+  "samples": 2500
+}

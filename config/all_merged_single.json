@@ -1,0 +1,52 @@
+{
+  "datasets":[
+    {
+      "name": "aadityaubhat/GPT-wiki-intro",
+      "human_samples": "wiki_intro",
+      "machine_samples": "generated_intro"
+    }
+  ],
+  "attacks": [
+    {
+      "name": "glyph",
+      "pair_file": "config/base_pairs.json",
+      "chance": 0.5
+    },
+    {
+      "name": "zwsp",
+      "padding_mult": 0.05
+    },
+    {
+      "name": "spelling",
+      "spell_file": "config/spelling.dat",
+      "chance": 0.5
+    },
+    {
+      "name": "spacing",
+      "chance": 1
+    }
+  ],
+  "models": [
+    {
+      "name": "andreas122001/roberta-wiki-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "andreas122001/roberta-academic-detector",
+      "human_label": "human-produced",
+      "machine_label": "machine-generated"
+    },
+    {
+      "name": "openai-community/roberta-base-openai-detector",
+      "human_label": "Real",
+      "machine_label": "Fake"
+    },
+    {
+      "name": "Hello-SimpleAI/chatgpt-detector-roberta",
+      "human_label": "Human",
+      "machine_label": "ChatGPT"
+    }
+  ],
+  "samples": 1000
+}
