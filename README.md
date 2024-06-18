@@ -1,6 +1,6 @@
 # MGT Mark
 
-A high(ish)-performance MGT (Machine Generated Text) obfuscation and detection benchmarking tool, supporting HuggingFace pipelines as well as commercial APIs. This software allows users to test commercial and open-source MGT classifiers against AI generated texts, with and without authorship obfuscation. Datasets and models can be pulled straight from HuggingFace and then obfuscated with a variety of configurable attacks.
+A high(ish)-performance MGT (Machine Generated Text) obfuscation and detection benchmarking tool, supporting HuggingFace pipelines as well as commercial APIs ([Winston.ai](https://gowinston.ai/) and [Originality.ai](https://originality.ai/)) . This software allows users to test commercial and open-source MGT classifiers against AI generated texts, with and without authorship obfuscation. Datasets and models can be pulled straight from HuggingFace and then obfuscated with a variety of configurable attacks.
 
 This should provide a strong indication of which detection systems are affective and whether they can be defeated through authorship obfuscation. This is actually quite important. LLMs are here to stay, and a detection will be a major determining factor on their impact on society. Continual and thorough assessment of MGT classifiers is crucial and authorship obfuscation must be considered alongside this. After all if a basic attack can render a classifier completely useless, then should it be considered affective in a more general sense?
 
