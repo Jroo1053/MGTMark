@@ -37,10 +37,19 @@
   {
     "name": "paragraph",
     "chance": 1
+  },
+  {
+    "name": "article",
+    "chance": 1,
+    "articles": ["the","a","an"]
+  },
+  {
+    "name": "upper_lower",
+    "chance": 1
   }
   ],
   "attack_configs": [
-      ["paragraph","whitespace","spelling","glyph","zwsp"],
+      ["upper_lower", "article","paragraph","whitespace","spelling","glyph","zwsp"],
       ["glyph"]
   ],
   "models": [

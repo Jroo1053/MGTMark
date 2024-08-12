@@ -18,40 +18,33 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-"""
-Models
-"""
-
+# Models
 import os
 import random
-
-from transformers import pipeline
-import pandas as pd
+from dataclasses import dataclass
 from typing import Callable
-from tqdm import tqdm
+
+import pandas as pd
 from datasets import load_dataset
-from multiprocessing.pool import ThreadPool
+from tqdm import tqdm
+from transformers import pipeline
 
 PROC_COUNT = os.cpu_count() - 2
 
 
+@dataclass
 class AttackMethod:
     """
     Representation of every authorship obfuscation attack.
+    :param name: name of the attack, must match one in config file.
+    :param attack_function: function that applies attack.
+    :param attack_args: dict of args to apply to attack function.
+    :param is_mappable: toggles multithreading off/on.
     """
-
-    def __init__(self, name: str, attack_function: Callable, attack_args: dict,
-                 is_mappable=True):
-        """
-        :param name: name of the attack, must match one in config file.
-        :param attack_function: function that applies attack.
-        :param attack_args: dict of args to apply to attack function.
-        :param is_mappable: toggles multithreading off/on.
-        """
-        self.name = name
-        self.attack_function = attack_function
-        self.attack_args = attack_args
-        self.is_mappable = is_mappable
+    name: str
+    attack_function: Callable
+    attack_args: dict
+    is_mappable: bool = True
 
 
 class MGTDataset:
@@ -69,7 +62,7 @@ class MGTDataset:
         self.name = path
         self.mgt_label = mgt_label
         self.human_label = human_label
-        self.TextSamples = []
+        self.text_samples = []
         self.data = {}
         self.max_samples = max_samples
 
@@ -94,7 +87,7 @@ class MGTDataset:
             else:
                 new_label = "human_chunks"
             for sample in base_data[label]:
-                self.TextSamples.append(
+                self.text_samples.append(
                     TextSample(
                         attack_type=new_label,
                         content=sample
@@ -126,7 +119,7 @@ class MGTDataset:
                 attack_index += 1
             data_column = attack_run[-1].name + "_chunks"
             for attack_sample in base_data[data_column]:
-                self.TextSamples.append(
+                self.text_samples.append(
                     TextSample(
                         attack_type=[x.name for x in attack_run],
                         content=attack_sample
@@ -134,34 +127,24 @@ class MGTDataset:
                 )
 
 
-class AttackRun:
-    def __init__(self, attacks: list):
-        pass
-
-
+@dataclass
 class TextSample:
     """
     Representation of a text document.
+    :param attack_type: attack used to obfuscate text,
+     can also be base human or MGT.
+    :param content: truncated samples.
     """
+    attack_type: list | str
+    content: str
 
-    def __init__(self, attack_type: str | list, content: str):
-        """
-        :param attack_type: attack used to obfuscate text,
-         can also be base human or MGT.
-        :param content: truncated samples.
-        """
-        if isinstance(attack_type,list):
-            self.attack_type = attack_type
-        else:
-            self.attack_type = [attack_type]
-        self.content = content
+    def __post_init__(self):
+        if not isinstance(self.attack_type, list):
+            self.attack_type = [self.attack_type]
         self.classification_results = []
         self.classifier = None
         self.entropy = 0
         self.attack_indexes = []
-
-    def _gen_chunks(self, max_chars=512):
-        pass
 
 
 class ClassifierPipeline:
@@ -190,7 +173,12 @@ class ClassifierPipeline:
             )
 
     def apply_classifier(self, dataset: MGTDataset):
-        for sample_text in tqdm(dataset.TextSamples):
+        """
+        Apply classifier to all entries in the dataset and append results
+        to TextSamples
+        :param dataset: dataset to test.
+        """
+        for sample_text in tqdm(dataset.text_samples):
             sample_res = self.pipeline(
                 sample_text.content, max_length=512
             )
@@ -201,7 +189,7 @@ class ClassifierPipeline:
             )
 
 
-class ClassificationResult():
+class ClassificationResult:
     """
     Representation of the results of a classification test.
     """
@@ -244,42 +232,36 @@ class RunConfig:
     def __init__(self, classifiers: list[ClassifierPipeline],
                  attacks: list[AttackMethod], datasets: list[MGTDataset],
                  runs: list[list[AttackMethod]], max_samples=1000):
-        self.Classifiers = classifiers
-        self.Attacks = attacks
-        self.Datasets = datasets
-        self.Runs = runs
+        self.classifiers = classifiers
+        self.attacks = attacks
+        self.datasets = datasets
+        self.runs = runs
         self.max_samples = max_samples
 
     def load_data(self):
-        for dataset in self.Datasets:
-            dataset.load_data(attacks=self.Runs)
-
-    def apply_attacks(self):
-        for dataset in self.Datasets:
-            for attack_run in self.Runs:
-                for attack in attack_run:
-                    dataset._apply_attacks(attack)
+        for dataset in self.datasets:
+            dataset.load_data(attacks=self.runs)
 
     def run_classifiers(self):
-        for classifier in self.Classifiers:
-            for dataset in self.Datasets:
+        for classifier in self.classifiers:
+            for dataset in self.datasets:
                 classifier.apply_classifier(dataset)
 
     def get_results(self):
         summary_data = []
-        for dataset in self.Datasets:
-            for y in range(len(self.Classifiers)):
-                classifier = self.Classifiers[y]
-                for attack_run in self.Runs:
+        for dataset in self.datasets:
+            for y in range(len(self.classifiers)):
+                classifier = self.classifiers[y]
+                for attack_run in self.runs:
                     attack = [x.name for x in attack_run]
                     mgt_total = len(
-                        [x for x in dataset.TextSamples if
+                        [x for x in dataset.text_samples if
                          x.classification_results[y].is_flagged_mgt
                          and x.attack_type == attack]
                     )
                     human_total = len(
-                        [x for x in dataset.TextSamples if
-                         x.classification_results[y].is_flagged_mgt == False
+                        [x for x in dataset.text_samples
+                         if not x.classification_results[y].is_flagged_mgt
                          and x.attack_type == attack]
                     )
                     all_total = mgt_total + human_total

@@ -19,13 +19,17 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import random
-from argparse import ArgumentParser
-
 from src.lib.utils import load_config
+from argparse import ArgumentParser
 
 
 def main():
+    """
+    -----------------------------------------------------
+    MGT Mark - MGT Text Obfuscation & Detection Test Tool
+    -----------------------------------------------------
+    VERSION b2.0
+    """
     valid_config = load_config(args.config_file, args.samples)
     if not valid_config:
         print("Failed to load config, Exiting!")

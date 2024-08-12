@@ -18,9 +18,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
-"""
 Attack Functions
 """
 
@@ -39,23 +37,76 @@ from libc.stdlib cimport rand, RAND_MAX
 pyximport.install()
 
 
+cpdef upper_lower(str text,float chance):
+    return _upper_lower_pyx(text,chance)
+
+cdef _upper_lower_pyx(str text, float chance):
+    cdef list[str] new_string = []
+    cdef list[str] text_split = [*text]
+    cdef list[int] case_indexes = []
+    for x in range(len(text_split)):
+        if text_split[x].isupper() and (rand()/ (RAND_MAX + 1.0)) <= chance:
+            new_string.append(text_split[x].lower())
+            case_indexes.append(x)
+        else:
+            new_string.append(text_split[x])
+    return "".join(new_string),case_indexes
+cpdef article_delete(str text,float chance, articles=None):
+    if articles is None:
+        articles = [
+            "the","a","an"
+        ]
+    return _article_delete(text,chance,articles)
+
+cdef tuple[str,list[int]] _article_delete(str text, float chance, list[str] articles):
+    cdef list[str] new_string = []
+    cdef list[int] article_indexes = []
+    cdef list[str] words = text.split()
+    for x in range(len(words)):
+        if words[x].lower() in articles and (rand()/ (RAND_MAX + 1.0)) <= chance:
+            new_string.append("")
+        else:
+            new_string.append(words[x])
+
+    article_text = " ".join(new_string)
+    return article_text, []
+
+
 cpdef paragraph_pyx(str text, float chance):
     return _paragraph_pyx(text,chance)
 
-cdef str _paragraph_pyx(str text, float chance):
+cdef tuple[str,list[int]] _paragraph_pyx(str text, float chance):
+    """
+    Insert paragraphs between random sentences
+    :param text: Text to obfuscate.
+    :param chance: chance of adding new paragraph
+    :return: new_text, indexes of new chars + old ones.
+    """
+
     cdef int x = 0
+    cdef list[int] para_indexes = []
     sentences = nltk.sent_tokenize(
         text
     )
     for x in range(len(sentences)):
         if (rand() / (RAND_MAX + 1.0)) <= chance:
             sentences[x] = "\n\n" + sentences[x]
-    return " ".join(sentences)
+
+    para_text = " ".join(sentences)
+    indexes = _get_string_indexes(para_text,"\n\n")
+
+    return " ".join(sentences), indexes
 
 cpdef whitespace_pyx(str text,float chance):
     return _whitespace_pyx(text,chance)
 
-cdef str _whitespace_pyx(str text, float chance):
+cdef tuple[str,list[int]] _whitespace_pyx(str text, float chance):
+    """
+    Obfuscate text by doubling whitespace randomly.
+    :param text: Text to obfuscate.
+    :param chance: Chance of doubling whitespace. 
+    :return: new text, indexes of old + new_chars.
+    """
     cdef list[str] new_string =[]
     cdef int x = 0
     cdef list[str] words = text.split()
@@ -65,33 +116,69 @@ cdef str _whitespace_pyx(str text, float chance):
             new_string.append(" " * 2)
         else:
             new_string.append(" ")
-    return "".join(new_string)
+
+    whitespace_text = "".join(new_string)
+
+    return whitespace_text, _get_string_indexes(whitespace_text,"  ")
 
 cpdef alter_numbers_pyx(str text, float chance):
     return _alter_numbers_pyx(text,chance)
 
-cdef str _alter_numbers_pyx(str text,float chance):
+cdef tuple[str,list[int]] _alter_numbers_pyx(str text,float chance):
+    """
+    Obfuscate text by altering the value of any numbers in the text,
+    respecting the total number of digits
+    :param text: text to obfuscate.
+    :param chance: chance of altering each number in the text.
+    :return: new text, indexes of altered numbers
+    """
     cdef list[str] new_string = []
+    cdef list[str] new_nums = []
     cdef int x = 0
-    ##cdef list[str] words = [m.span() for m in re.finditer("\d+\.?\d*", text)]
     cdef list[str] words = text.split()
 
     for x in range(len(words)):
         if words[x].isdigit() and (rand() / (RAND_MAX + 1.0)) <= chance:
-            new_string.append("".join(
-                [str(random.randint(0,9)) for _ in range(len(str(words[x])))]
-            ))
+            new_num = "".join([str(random.randint(0,9)) for _ in range(len(str(words[x])))])
+            new_string.append(new_num)
+            new_nums.append(new_num)
         else:
             new_string.append(words[x])
-    return " ".join(new_string)
+
+    number_text = " ".join(new_string)
+    print(new_nums)
+    print(number_text)
+    num_indexes = []
+    for x in range(len(new_nums)):
+        num_indexes += _get_string_indexes(number_text,new_nums[x])
+    return number_text, num_indexes
 
 
-cdef list[int] _get_char_indexes(str text, str chr):
+cdef list[int] _get_string_indexes(str text,str search_string):
+    cdef int i, j, text_len, pattern_len
+    cdef list indexes = []
+
+    text_len = len(text)
+    pattern_len = len(search_string)
+
+    for i in range(text_len - pattern_len + 1):
+        if text[i:i + pattern_len] == search_string:
+            for j in range(pattern_len):
+                indexes.append(i + j)
+
+    return indexes
+cdef list[int] _get_char_indexes(str text, str character):
+    """
+    Get all the indexes if of a given char in text
+    :param text: text to scan
+    :param character: character to find
+    :return: indexes of char in text
+    """
     cdef list[int] char_indexes = []
-    cdef int x, total_chrs = text.count(chr)
+    cdef int x, total_chrs = text.count(character)
 
     # Precompute the total number of characters
-    char_indexes = [x for x in range(len(text)) if text[x] == chr]
+    char_indexes = [x for x in range(len(text)) if text[x] == character]
 
     return char_indexes
 
@@ -136,7 +223,7 @@ cdef tuple[str, list] _misspell_pyx(str text, dict pairs, float chance,
 
 
 cdef tuple[str, list] _zwsp_padding_pyx(str text, double padding_multiplier,
-                                        list zwsp_chars =  ["\u200C"]):
+                                        list zwsp_chars =  None):
     """
     Insert a number of Zero Width Spaces into the given string.
     Insert Len(string) * padding_multiplier characters.
@@ -146,6 +233,8 @@ cdef tuple[str, list] _zwsp_padding_pyx(str text, double padding_multiplier,
     :param zwsp_chars: List of ZWSP chars to use.
     :return: new text number of chars changed
     """
+    if zwsp_chars is None:
+        zwsp_chars = ["\u200C"]
     cdef list new_text
     cdef int i, text_len, zwsp_len
 
@@ -164,7 +253,9 @@ cdef tuple[str, list] _zwsp_padding_pyx(str text, double padding_multiplier,
 
 
 cpdef tuple[str, list] zwsp_padding_pyx(str text, double padding_multiplier,
-                                        list zwsp_chars = ["\u200C"]):
+                                        list zwsp_chars = None):
+    if zwsp_chars is None:
+        zwsp_chars = ["\u200C"]
     return _zwsp_padding_pyx(
         text, padding_multiplier, zwsp_chars
     )

@@ -16,22 +16,22 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
 
-"""
 Utility Functions
 """
-
+import json
 import pyximport
+import charset_normalizer as cn
 
 pyximport.install()
-from src.lib.models import RunConfig, AttackMethod, MGTDataset, \
-    ClassifierPipeline
-import json
+
+from src.lib.models import (RunConfig, AttackMethod, MGTDataset,
+                            ClassifierPipeline)
+
 from src.lib.mappables import (misspell_mappable, glyph_attack_mappable,
                                zwsp_padding_mappable, paragraph_mappable,
                                strat_space_mappable, alter_numbers_mappable,
-                               whitespace_mappable)
+                               whitespace_mappable,article_mappable,upper_lower_mappable)
 
 SUPPORTED_METHODS = {
     "spelling": misspell_mappable,
@@ -41,27 +41,35 @@ SUPPORTED_METHODS = {
     "alter_number": alter_numbers_mappable,
     "whitespace": whitespace_mappable,
     "paragraph": paragraph_mappable,
-    "article_delete": "",
+    "article": article_mappable,
+    "upper_lower":upper_lower_mappable,
     "translate": "",
     "paraphrase": "",
 }
 
 CHANCE_ONLY_ATTACKS = [
-    "spacing", "alter_number", "whitespace", "paragraph",
+    "spacing", "alter_number", "whitespace", "paragraph","upper_lower"
 ]
 SUPPORTED_APIS = [
     "ORIG"
 ]
 
 
-def _config_sanity_checks(config_path: str) -> bool:
+def _guess_encoding(path: str) -> str:
+    with open(path, "rb") as code_test:
+        data = code_test.read(10 ** 6)
+    return cn.detect(data).get("encoding")
+
+
+def _get_json(config_path: str) -> bool | dict:
     """
     Run basic sanity checks against config file, before running config setup.
     :param config_path: candidate configuration file.
     :return: true if checks pass.
     """
     try:
-        with open(config_path, "r", encoding="utf-8") as config_file:
+        with open(config_path, "r",
+                  encoding=_guess_encoding(config_path)) as config_file:
             config_json = json.loads(config_file.read())
     except IOError as exc:
         print(f"Got file error, while loading config: {config_path}. {exc}")
@@ -79,28 +87,65 @@ def _config_sanity_checks(config_path: str) -> bool:
             set(SUPPORTED_METHODS.keys())):
         print(f"Got unsupported method(s): {set_diff}, exiting!")
         return False
-    return True
+    return config_json
 
 
-def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
+def _load_datasets(config_json: dict, max_samples: int) -> list[MGTDataset]:
     """
-    Load configuration from file and produce RunConfig to support later actions.
-    :param config_path: path to config file.
-    :param max_samples: maximum number of samples to parse from each dataset.
-    :return: RunConfig of options.
+
+    :param config_json:
+    :param max_samples:
+    :return:
     """
-    if not _config_sanity_checks(config_path):
-        return False
+    datasets = []
+    for dataset in config_json["datasets"]:
+        datasets.append(
+            MGTDataset(
+                path=dataset["name"],
+                mgt_label=dataset["machine_samples"],
+                human_label=dataset["human_samples"],
+                max_samples=max_samples
+            )
+        )
+    return datasets
 
-    with open(config_path, "r", encoding="utf-8") as conf_file:
-        config_json = json.loads(conf_file.read())
 
+def _load_classifiers(config_json: dict) -> list[ClassifierPipeline]:
+    """
+
+    :param config_json:
+    :return:
+    """
+    classifiers = []
+    for classifier in config_json["models"]:
+        is_api = False
+        if classifier["name"] in SUPPORTED_APIS:
+            is_api = True
+        classifiers.append(
+            ClassifierPipeline(
+                name=classifier["name"],
+                mgt_label=classifier["machine_label"],
+                human_label=classifier["human_label"],
+                is_api=is_api
+            )
+        )
+    return classifiers
+
+
+def _load_attacks(config_json: dict) -> list[AttackMethod]:
+    """
+
+    :param config_json:
+    :return:
+    """
     attack_methods = []
     new_method = None
+
+    # Load config methods, no pretty way to do this.
     for method in config_json["attacks"]:
         method_name = method["name"].lower()
-        if "chance" in method.keys():
-            method_chance = method["chance"]
+        method_chance = method.get("chance")
+
         if method_name in CHANCE_ONLY_ATTACKS:
             new_method = AttackMethod(
                 name=method_name,
@@ -110,7 +155,8 @@ def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
                 }
             )
         elif method_name == "glyph":
-            with open(method["pair_file"], "r") as pair_file:
+            with open(method["pair_file"], "r", encoding=_guess_encoding(
+                    method["pair_file"])) as pair_file:
                 pairs_json = json.loads(pair_file.read())
                 pair_map = {x["base"]: x["alts"] for x in pairs_json}
             new_method = AttackMethod(
@@ -122,7 +168,8 @@ def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
                 }
             )
         elif method_name == "spelling":
-            with open(method["spell_file"], "r") as spell_file:
+            with open(method["spell_file"], "r", encoding=_guess_encoding(
+                    method["spell_file"])) as spell_file:
                 pairs_json = json.loads(spell_file.read())
                 spell_map = {x["base"]: x["alts"] for x in pairs_json}
             new_method = AttackMethod(
@@ -142,33 +189,27 @@ def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
                     "padding_mult": method["padding_mult"]
                 }
             )
+        elif method_name == "article":
+            new_method = AttackMethod(
+                name=method_name,
+                attack_function=SUPPORTED_METHODS[method_name],
+                attack_args={
+                    "articles":method["articles"],
+                    "chance":method_chance
+                }
+            )
         if new_method:
             attack_methods.append(new_method)
-    datasets = []
-    classifiers = []
+    return attack_methods
 
-    for dataset in config_json["datasets"]:
-        datasets.append(
-            MGTDataset(
-                path=dataset["name"],
-                mgt_label=dataset["machine_samples"],
-                human_label=dataset["human_samples"],
-                max_samples=max_samples
-            )
-        )
-    for classifier in config_json["models"]:
-        is_api = False
-        if classifier["name"] in SUPPORTED_APIS:
-            is_api = True
-        classifiers.append(
-            ClassifierPipeline(
-                name=classifier["name"],
-                mgt_label=classifier["machine_label"],
-                human_label=classifier["human_label"],
-                is_api=is_api
-            )
-        )
 
+def _load_attack_runs(config_json: dict, attack_methods: list[AttackMethod]) -> \
+list[[AttackMethod]]:
+    """
+    :param config_json:
+    :param attack_methods:
+    :return:
+    """
     attack_runs = []
     for attack_run in config_json["attack_configs"]:
         if attack_run == ["*"]:
@@ -186,6 +227,24 @@ def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
                                 attack_methods.index(matching_method[0])]
                         )
             attack_runs.append(new_run)
+    return attack_runs
+
+
+def load_config(config_path: str, max_samples: int) -> RunConfig | bool:
+    """
+    Load configuration from file and produce RunConfig to support later actions.
+    :param config_path: path to config file.
+    :param max_samples: maximum number of samples to parse from each dataset.
+    :return: RunConfig of options.
+    """
+    config_json = _get_json(config_path)
+    if not config_json:
+        return False
+
+    datasets = _load_datasets(config_json, max_samples)
+    classifiers = _load_classifiers(config_json)
+    attack_methods = _load_attacks(config_json)
+    attack_runs = _load_attack_runs(config_json, attack_methods)
 
     return RunConfig(
         datasets=datasets,
