@@ -13,7 +13,7 @@ pyximport.install()
 from src.lib.attacks import (
     glyph_attack_pyx,zwsp_padding_pyx, misspell_pyx,
     whitespace_pyx,paragraph_pyx,alter_numbers_pyx, article_delete,
-    upper_lower)
+    upper_lower,comma_swap)
 
 TEST_STRING = """Wow okay, jeez. Watch out for the big guy, he knows how to write JSON.
 God dam big guy over here, bet he listens to nu metal.
@@ -100,6 +100,16 @@ class TestAttacks(unittest.TestCase):
         assert case_indexes
         for x in case_res:
             if x.isupper():
+                assert False
+
+    def test_comma_swap(self):
+        comma_res, comma_index = comma_swap(
+            TEST_STRING,1
+        )
+        assert comma_res
+        assert comma_index
+        for x in comma_index:
+            if comma_res[x] != ".":
                 assert False
 
 

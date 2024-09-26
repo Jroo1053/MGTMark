@@ -46,28 +46,16 @@
   {
     "name": "upper_lower",
     "chance": 1
+  },
+  {
+    "name": "comma_swap",
+    "chance": 1
   }
   ],
   "attack_configs": [
-      ["upper_lower", "article","paragraph","whitespace","spelling","glyph","zwsp"],
-      ["upper_lower"]
+    ["comma_swap"]
   ],
   "models": [
-  {
-    "name": "andreas122001/roberta-wiki-detector",
-    "human_label": "human-produced",
-    "machine_label": "machine-generated"
-  },
-  {
-    "name": "andreas122001/roberta-academic-detector",
-    "human_label": "human-produced",
-    "machine_label": "machine-generated"
-  },
-  {
-    "name": "openai-community/roberta-base-openai-detector",
-    "human_label": "Real",
-    "machine_label": "Fake"
-  },
   {
     "name": "Hello-SimpleAI/chatgpt-detector-roberta",
     "human_label": "Human",

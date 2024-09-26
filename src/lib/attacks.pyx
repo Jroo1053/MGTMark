@@ -1,10 +1,10 @@
 #!python
-#cython: langauge_level=3
+# cython: langauge_level=3
 """
 
 MGTMark - Machine Generated Text Detection & Obfuscation Benchmarking Tool.
 
-Copyright (C) 2024 Elyse Frary
+Copyright (C) 2024 Joseph Frary
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import nltk
 from nltk.downloader import Downloader
 
 nltk_down = Downloader()
+# This mutes the already downloaded warning.
 if not nltk_down.is_installed("punkt"):
     nltk_down.download("punkt")
 
@@ -36,11 +37,39 @@ from libc.stdlib cimport rand, RAND_MAX
 
 pyximport.install()
 
+cpdef tuple[str, list[int]] comma_swap(str text, float chance):
+    return _comma_swap(text,chance)
 
-cpdef upper_lower(str text,float chance):
-    return _upper_lower_pyx(text,chance)
+cdef tuple[str,list[int]] _comma_swap(str text,float chance):
+    """
+    Replace commas with full stops
+    :param text: text to modify
+    :param chance: chance of swapping at each occurrence. 
+    :return: modified text.
+    """
+    if "," not in text:
+        return text, []
+    cdef list[int] comma_indexes = _get_char_indexes(text,",")
+    cdef list[str] text_split = [*text]
+    cdef int x = 0
+    for x in range(len(comma_indexes)):
+        if (rand() / (RAND_MAX + 1.0)) <= chance:
+            text_split[comma_indexes[x]] = "."
+            if comma_indexes[x] < len(text) - 2:
+                text_split[comma_indexes[x] + 2] = text_split[comma_indexes[x] + 2].swapcase()
 
-cdef _upper_lower_pyx(str text, float chance):
+    return "".join(text_split), comma_indexes
+
+cpdef upper_lower(str text, float chance):
+    return _upper_lower_pyx(text, chance)
+
+cdef tuple[str, list[int]] _upper_lower_pyx(str text, float chance):
+    """
+    Replace random upper case chars with lower case.
+    :param text: Text to obfuscate.
+    :param chance: Chance of modifying each occurrence.
+    :return: new text
+    """
     cdef list[str] new_string = []
     cdef list[str] text_split = [*text]
     cdef list[int] case_indexes = []
@@ -50,15 +79,26 @@ cdef _upper_lower_pyx(str text, float chance):
             case_indexes.append(x)
         else:
             new_string.append(text_split[x])
-    return "".join(new_string),case_indexes
-cpdef article_delete(str text,float chance, articles=None):
+    return "".join(new_string), case_indexes
+
+
+cpdef tuple[str, list[int]] article_delete(str text, float chance, articles=None):
+
     if articles is None:
         articles = [
-            "the","a","an"
+            "the", "a", "an"
         ]
-    return _article_delete(text,chance,articles)
+    return _article_delete(text, chance, articles)
 
-cdef tuple[str,list[int]] _article_delete(str text, float chance, list[str] articles):
+
+cdef tuple[str, list[int]] _article_delete(str text, float chance, list[str] articles):
+    """
+    Delete random words from text.
+    :param text: text to modify.
+    :param chance: chance to delete each article.
+    :param articles: list of words to remove.
+    :return: modified text.
+    """
     cdef list[str] new_string = []
     cdef list[int] article_indexes = []
     cdef list[str] words = text.split()
@@ -73,9 +113,10 @@ cdef tuple[str,list[int]] _article_delete(str text, float chance, list[str] arti
 
 
 cpdef paragraph_pyx(str text, float chance):
-    return _paragraph_pyx(text,chance)
+    return _paragraph_pyx(text, chance)
 
-cdef tuple[str,list[int]] _paragraph_pyx(str text, float chance):
+
+cdef tuple[str, list[int]] _paragraph_pyx(str text, float chance):
     """
     Insert paragraphs between random sentences
     :param text: Text to obfuscate.
@@ -93,18 +134,20 @@ cdef tuple[str,list[int]] _paragraph_pyx(str text, float chance):
             sentences[x] = "\n\n" + sentences[x]
 
     para_text = " ".join(sentences)
-    indexes = _get_string_indexes(para_text,"\n\n")
+    indexes = _get_string_indexes(para_text, "\n\n")
 
     return " ".join(sentences), indexes
 
-cpdef whitespace_pyx(str text,float chance):
-    return _whitespace_pyx(text,chance)
 
-cdef tuple[str,list[int]] _whitespace_pyx(str text, float chance):
+cpdef whitespace_pyx(str text, float chance):
+    return _whitespace_pyx(text, chance)
+
+
+cdef tuple[str, list[int]] _whitespace_pyx(str text, float chance):
     """
     Obfuscate text by doubling whitespace randomly.
     :param text: Text to obfuscate.
-    :param chance: Chance of doubling whitespace. 
+    :param chance: Chance of doubling whitespace.
     :return: new text, indexes of old + new_chars.
     """
     cdef list[str] new_string =[]
@@ -119,12 +162,15 @@ cdef tuple[str,list[int]] _whitespace_pyx(str text, float chance):
 
     whitespace_text = "".join(new_string)
 
-    return whitespace_text, _get_string_indexes(whitespace_text,"  ")
+    return whitespace_text, _get_string_indexes(whitespace_text,
+                                                "  ")
+
 
 cpdef alter_numbers_pyx(str text, float chance):
-    return _alter_numbers_pyx(text,chance)
+    return _alter_numbers_pyx(text, chance)
 
-cdef tuple[str,list[int]] _alter_numbers_pyx(str text,float chance):
+
+cdef tuple[str, list[int]] _alter_numbers_pyx(str text, float chance):
     """
     Obfuscate text by altering the value of any numbers in the text,
     respecting the total number of digits
@@ -139,22 +185,21 @@ cdef tuple[str,list[int]] _alter_numbers_pyx(str text,float chance):
 
     for x in range(len(words)):
         if words[x].isdigit() and (rand() / (RAND_MAX + 1.0)) <= chance:
-            new_num = "".join([str(random.randint(0,9)) for _ in range(len(str(words[x])))])
+            new_num = "".join([str(random.randint(0, 9))
+                              for _ in range(len(str(words[x])))])
             new_string.append(new_num)
             new_nums.append(new_num)
         else:
             new_string.append(words[x])
 
     number_text = " ".join(new_string)
-    print(new_nums)
-    print(number_text)
     num_indexes = []
     for x in range(len(new_nums)):
-        num_indexes += _get_string_indexes(number_text,new_nums[x])
+        num_indexes += _get_string_indexes(number_text, new_nums[x])
     return number_text, num_indexes
 
 
-cdef list[int] _get_string_indexes(str text,str search_string):
+cdef list[int] _get_string_indexes(str text, str search_string):
     cdef int i, j, text_len, pattern_len
     cdef list indexes = []
 
@@ -167,6 +212,8 @@ cdef list[int] _get_string_indexes(str text,str search_string):
                 indexes.append(i + j)
 
     return indexes
+
+
 cdef list[int] _get_char_indexes(str text, str character):
     """
     Get all the indexes if of a given char in text
@@ -203,8 +250,9 @@ cdef str _strat_space_pyx(str text, float chance):
 
     return "".join(new_text)
 
+
 cpdef strat_space_pyx(entry, chance):
-    return _strat_space_pyx(entry,chance)
+    return _strat_space_pyx(entry, chance)
 
 
 cpdef misspell_pyx(str text, dict pairs, float chance, int min_len):
@@ -213,13 +261,14 @@ cpdef misspell_pyx(str text, dict pairs, float chance, int min_len):
 
 cdef tuple[str, list] _misspell_pyx(str text, dict pairs, float chance,
                                     int min_len):
-    pattern = r'\b(?:' + '|'.join(re.escape(word) for word in list(pairs.keys())) + r')\b'
+    pattern = r'\b(?:' + '|'.join(re.escape(word)
+                                  for word in list(pairs.keys())) + r')\b'
 
     def replace_match(match):
         return random.choice(pairs[match.group(0)])
 
-    replaced_text = re.sub(pattern,replace_match,text)
-    return replaced_text,[]
+    replaced_text = re.sub(pattern, replace_match, text)
+    return replaced_text, []
 
 
 cdef tuple[str, list] _zwsp_padding_pyx(str text, double padding_multiplier,
@@ -274,10 +323,7 @@ cdef tuple[str, list] _glyph_attack_pyx(str text, dict pairs,
     :param pairs: list of glyphs and pairs.
     :return: modified text.
     """
-    """
-    This stupid loop is apparently way faster than other options for some
-    reason. 
-    """
+
     cdef list new_string = []
     cdef list modded_indexes = []
     cdef int x, tex_len = len(text)

@@ -2,7 +2,7 @@
 
 MGTMark - Machine Generated Text Detection & Obfuscation Benchmarking Tool.
 
-Copyright (C) 2024 Elyse Frary
+Copyright (C) 2024 Joseph Frary
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,14 +24,17 @@ import pyximport
 import charset_normalizer as cn
 
 pyximport.install()
+from src.models.classifier_pipeline import ClassifierPipeline
+from src.models.dataset import AttackMethod, MGTDataset
+from src.models.run_config import RunConfig
 
-from src.lib.models import (RunConfig, AttackMethod, MGTDataset,
-                            ClassifierPipeline)
+
 
 from src.lib.mappables import (misspell_mappable, glyph_attack_mappable,
                                zwsp_padding_mappable, paragraph_mappable,
                                strat_space_mappable, alter_numbers_mappable,
-                               whitespace_mappable,article_mappable,upper_lower_mappable)
+                               whitespace_mappable, article_mappable,
+                               upper_lower_mappable, comma_swap_mappable)
 
 SUPPORTED_METHODS = {
     "spelling": misspell_mappable,
@@ -42,13 +45,15 @@ SUPPORTED_METHODS = {
     "whitespace": whitespace_mappable,
     "paragraph": paragraph_mappable,
     "article": article_mappable,
-    "upper_lower":upper_lower_mappable,
+    "upper_lower": upper_lower_mappable,
+    "comma_swap": comma_swap_mappable,
     "translate": "",
     "paraphrase": "",
 }
 
 CHANCE_ONLY_ATTACKS = [
-    "spacing", "alter_number", "whitespace", "paragraph","upper_lower"
+    "spacing", "alter_number", "whitespace", "paragraph", "upper_lower",
+    "comma_swap"
 ]
 SUPPORTED_APIS = [
     "ORIG"
@@ -194,17 +199,20 @@ def _load_attacks(config_json: dict) -> list[AttackMethod]:
                 name=method_name,
                 attack_function=SUPPORTED_METHODS[method_name],
                 attack_args={
-                    "articles":method["articles"],
-                    "chance":method_chance
+                    "articles": method["articles"],
+                    "chance": method_chance
                 }
             )
         if new_method:
             attack_methods.append(new_method)
+
+
+
     return attack_methods
 
 
 def _load_attack_runs(config_json: dict, attack_methods: list[AttackMethod]) -> \
-list[[AttackMethod]]:
+        list[[AttackMethod]]:
     """
     :param config_json:
     :param attack_methods:

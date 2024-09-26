@@ -46,11 +46,19 @@
   {
     "name": "upper_lower",
     "chance": 1
+  },
+  {
+    "name": "comma_swap",
+    "chance": 1
   }
   ],
   "attack_configs": [
-      ["upper_lower", "article","paragraph","whitespace","spelling","glyph","zwsp"],
-      ["upper_lower"]
+    ["article"],
+    ["upper_lower"],
+    ["paragraph"],
+    ["whitespace"],
+    ["alter_number"],
+    ["comma_swap"]
   ],
   "models": [
   {

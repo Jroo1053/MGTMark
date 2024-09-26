@@ -2,7 +2,7 @@
 
 MGTMark - Machine Generated Text Detection & Obfuscation Benchmarking Tool.
 
-Copyright (C) 2024 Elyse Frary
+Copyright (C) 2024 Joseph Frary
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,33 +22,33 @@ datasets via .map(). All funcs take dict entry to obfuscate, dict of attack args
 and label to access sample.
 """
 
-
 from src.lib.attacks import (misspell_pyx, zwsp_padding_pyx,
                              glyph_attack_pyx, whitespace_pyx, paragraph_pyx,
-                             alter_numbers_pyx, strat_space_pyx,article_delete,
-                             upper_lower)
+                             alter_numbers_pyx, strat_space_pyx, article_delete,
+                             upper_lower, comma_swap)
 
 
-
-def upper_lower_mappable(entry,args:dict,machine_label:str) -> dict:
+def upper_lower_mappable(entry, args: dict, machine_label: str) -> dict:
     base_result, indexes = upper_lower(
-        entry[machine_label],args["chance"]
+        entry[machine_label], args["chance"]
     )
     map_result = {
-        "upper_lower_chunks":base_result,
-        "upper_lower_indexes":indexes
+        "upper_lower_chunks": base_result,
+        "upper_lower_indexes": indexes
     }
     return map_result
 
-def article_mappable(entry, args: dict, machine_label:str) -> dict:
+
+def article_mappable(entry, args: dict, machine_label: str) -> dict:
     base_result, indexes = article_delete(
-        entry[machine_label],args["chance"],args["articles"]
+        entry[machine_label], args["chance"], args["articles"]
     )
     map_result = {
-        "article_chunks":base_result,
-        "article_indexes":indexes
+        "article_chunks": base_result,
+        "article_indexes": indexes
     }
     return map_result
+
 
 def paragraph_mappable(entry, args: dict, machine_label: str) -> dict:
     """
@@ -60,12 +60,12 @@ def paragraph_mappable(entry, args: dict, machine_label: str) -> dict:
     label.
     :return: dict with new text, and number of changed chars.
     """
-    base_result,paragraph_indexes = paragraph_pyx(
+    base_result, paragraph_indexes = paragraph_pyx(
         entry[machine_label], args["chance"]
     )
     map_result = {
         "paragraph_chunks": base_result,
-        "paragraph_indexes":paragraph_indexes
+        "paragraph_indexes": paragraph_indexes
     }
     return map_result
 
@@ -80,7 +80,7 @@ def whitespace_mappable(entry, args: dict, machine_label: str) -> dict:
     label.
     :return: dict with new text, and number of changed chars.
     """
-    base_result,whitespace_indexes = whitespace_pyx(
+    base_result, whitespace_indexes = whitespace_pyx(
         entry[machine_label], args["chance"]
     )
     map_result = {
@@ -100,11 +100,12 @@ def alter_numbers_mappable(entry, args: dict, machine_label: str) -> dict:
     label.
     :return: dict with new text, and number of changed chars.
     """
-    base_result = alter_numbers_pyx(
+    base_result, indexes = alter_numbers_pyx(
         entry[machine_label], args["chance"]
     )
     map_result = {
-        "alter_numbers_chunks": base_result
+        "alter_number_chunks": base_result,
+        "alter_number_indexes": indexes
     }
     return map_result
 
@@ -182,5 +183,16 @@ def strat_space_mappable(entry, args, machine_label) -> dict:
     )
     map_result = {
         "spacing_chunks": base_result
+    }
+    return map_result
+
+
+def comma_swap_mappable(entry, args: dict, machine_label: str) -> dict:
+    base_result, modded_indexes = comma_swap(
+        entry[machine_label], args["chance"]
+    )
+    map_result = {
+        "comma_swap_chunks": base_result,
+        "comma_swap_indexes": modded_indexes
     }
     return map_result

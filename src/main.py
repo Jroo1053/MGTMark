@@ -4,7 +4,7 @@
 
 MGTMark - Machine Generated Text Detection & Obfuscation Benchmarking Tool.
 
-Copyright (C) 2024 Elyse Frary
+Copyright (C) 2024 Joseph Frary
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,11 +19,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+from argparse import ArgumentParser, Namespace
 from src.lib.utils import load_config
-from argparse import ArgumentParser
 
 
-def main():
+def main(args: Namespace):
     """
     -----------------------------------------------------
     MGT Mark - MGT Text Obfuscation & Detection Test Tool
@@ -36,7 +36,6 @@ def main():
     valid_config.load_data()
     valid_config.run_classifiers()
     valid_config.get_results()
-    print()
 
 
 if __name__ == "__main__":
@@ -49,5 +48,4 @@ if __name__ == "__main__":
                         help="Require Manual Verification",
                         dest="is_human_check",
                         default=False, action="store_true")
-    args = parser.parse_args()
-    main()
+    main(parser.parse_args())

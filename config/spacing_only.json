@@ -49,8 +49,10 @@
   }
   ],
   "attack_configs": [
-      ["upper_lower", "article","paragraph","whitespace","spelling","glyph","zwsp"],
-      ["upper_lower"]
+    ["paragraph"],
+    ["paragraph","whitespace"],
+    ["paragraph","whitespace","spacing"],
+    ["paragraph","whitespace","spacing","zwsp"]
   ],
   "models": [
   {
